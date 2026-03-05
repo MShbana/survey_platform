@@ -1,0 +1,7 @@
+skips:
+  - B101  # assert used (OK in tests)
+
+exclude_dirs:
+  - survey_platform_venv
+  - .git
+  - __pycache__

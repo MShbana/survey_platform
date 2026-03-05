@@ -1,0 +1,1803 @@
+{
+	"info": {
+		"_postman_id": "survey-platform-api",
+		"name": "Survey API",
+		"description": "Survey Platform REST API — accounts, surveys (sections, fields, conditional rules, field dependencies), responses, and audit logs.",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://localhost:8000",
+			"type": "string"
+		},
+		{
+			"key": "access_token",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "refresh_token",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "survey_id",
+			"value": "1",
+			"type": "string"
+		},
+		{
+			"key": "section_id",
+			"value": "1",
+			"type": "string"
+		},
+		{
+			"key": "field_id",
+			"value": "1",
+			"type": "string"
+		},
+		{
+			"key": "rule_id",
+			"value": "1",
+			"type": "string"
+		},
+		{
+			"key": "dependency_id",
+			"value": "1",
+			"type": "string"
+		},
+		{
+			"key": "response_id",
+			"value": "1",
+			"type": "string"
+		},
+		{
+			"key": "user_id",
+			"value": "1",
+			"type": "string"
+		}
+	],
+	"auth": {
+		"type": "bearer",
+		"bearer": [
+			{
+				"key": "token",
+				"value": "{{access_token}}",
+				"type": "string"
+			}
+		]
+	},
+	"item": [
+		{
+			"name": "Accounts",
+			"description": "User registration, JWT authentication, profile, and admin user management.",
+			"item": [
+				{
+					"name": "Register",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"if (pm.response.code === 201) {",
+									"    var json = pm.response.json();",
+									"    pm.collectionVariables.set('user_id', json.id);",
+									"    pm.test('User created', function () {",
+									"        pm.expect(json.email).to.be.a('string');",
+									"        pm.expect(json.role).to.eql('customer');",
+									"    });",
+									"}"
+								]
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"email\": \"customer@example.com\",\n    \"password\": \"securePass123\",\n    \"first_name\": \"John\",\n    \"last_name\": \"Doe\",\n    \"role\": \"customer\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/auth/register/",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "auth", "register", ""]
+						},
+						"description": "Register a new user. Public endpoint — no authentication required.\n\nOnly admins can create users with roles other than `customer`. Non-admin callers that pass a role other than `customer` will get a 400 error.\n\nRoles: `admin`, `data_analyst`, `data_viewer`, `customer`."
+					},
+					"response": [
+						{
+							"name": "201 — Customer registered",
+							"status": "Created",
+							"code": 201,
+							"header": [{"key": "Content-Type", "value": "application/json"}],
+							"body": "{\n    \"id\": 2,\n    \"email\": \"customer@example.com\",\n    \"first_name\": \"John\",\n    \"last_name\": \"Doe\",\n    \"role\": \"customer\"\n}"
+						}
+					]
+				},
+				{
+					"name": "Login",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    var json = pm.response.json();",
+									"    pm.collectionVariables.set('access_token', json.access);",
+									"    pm.collectionVariables.set('refresh_token', json.refresh);",
+									"    pm.test('Tokens received', function () {",
+									"        pm.expect(json.access).to.be.a('string');",
+									"        pm.expect(json.refresh).to.be.a('string');",
+									"    });",
+									"}"
+								]
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"email\": \"admin@example.com\",\n    \"password\": \"admin-password\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/auth/login/",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "auth", "login", ""]
+						},
+						"description": "Obtain a JWT access + refresh token pair. The access token is automatically saved to the `access_token` collection variable for use by other requests."
+					},
+					"response": [
+						{
+							"name": "200 — Tokens returned",
+							"status": "OK",
+							"code": 200,
+							"header": [{"key": "Content-Type", "value": "application/json"}],
+							"body": "{\n    \"access\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...\",\n    \"refresh\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...\"\n}"
+						}
+					]
+				},
+				{
+					"name": "Refresh Token",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"if (pm.response.code === 200) {",
+									"    var json = pm.response.json();",
+									"    pm.collectionVariables.set('access_token', json.access);",
+									"    pm.test('New access token received', function () {",
+									"        pm.expect(json.access).to.be.a('string');",
+									"    });",
+									"}"
+								]
+							}
+						}
+					],
+					"request": {
+						"auth": {
+							"type": "noauth"
+						},
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"refresh\": \"{{refresh_token}}\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/auth/refresh/",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "auth", "refresh", ""]
+						},
+						"description": "Refresh an expired access token using the refresh token. The new access token is automatically saved."
+					},
+					"response": [
+						{
+							"name": "200 — Token refreshed",
+							"status": "OK",
+							"code": 200,
+							"header": [{"key": "Content-Type", "value": "application/json"}],
+							"body": "{\n    \"access\": \"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...\"\n}"
+						}
+					]
+				},
+				{
+					"name": "Me (Current User)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/v1/auth/me/",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "auth", "me", ""]
+						},
+						"description": "Retrieve the currently authenticated user's profile. Requires a valid access token."
+					},
+					"response": [
+						{
+							"name": "200 — Current user profile",
+							"status": "OK",
+							"code": 200,
+							"header": [{"key": "Content-Type", "value": "application/json"}],
+							"body": "{\n    \"id\": 1,\n    \"email\": \"admin@example.com\",\n    \"first_name\": \"Admin\",\n    \"last_name\": \"User\",\n    \"role\": \"admin\",\n    \"is_active\": true,\n    \"date_joined\": \"2026-01-15T10:30:00Z\"\n}"
+						}
+					]
+				},
+				{
+					"name": "List Users (Admin)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/v1/auth/users/?role=customer&is_active=true&search=john",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "auth", "users", ""],
+							"query": [
+								{
+									"key": "role",
+									"value": "customer",
+									"description": "Filter by role: admin, data_analyst, data_viewer, customer"
+								},
+								{
+									"key": "is_active",
+									"value": "true",
+									"description": "Filter by active status: true / false"
+								},
+								{
+									"key": "search",
+									"value": "john",
+									"description": "Search across email, first_name, last_name"
+								}
+							]
+						},
+						"description": "List all users. Admin only. Supports filtering by `role` and `is_active`, and free-text `search` across email, first_name, last_name."
+					},
+					"response": [
+						{
+							"name": "200 — Paginated user list",
+							"status": "OK",
+							"code": 200,
+							"header": [{"key": "Content-Type", "value": "application/json"}],
+							"body": "{\n    \"count\": 1,\n    \"next\": null,\n    \"previous\": null,\n    \"results\": [\n        {\n            \"id\": 2,\n            \"email\": \"john@example.com\",\n            \"first_name\": \"John\",\n            \"last_name\": \"Doe\",\n            \"role\": \"customer\",\n            \"is_active\": true,\n            \"date_joined\": \"2026-01-20T08:00:00Z\"\n        }\n    ]\n}"
+						}
+					]
+				},
+				{
+					"name": "Retrieve User (Admin)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/v1/auth/users/{{user_id}}/",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "auth", "users", "{{user_id}}", ""]
+						},
+						"description": "Retrieve a single user by ID. Admin only."
+					},
+					"response": [
+						{
+							"name": "200 — User details",
+							"status": "OK",
+							"code": 200,
+							"header": [{"key": "Content-Type", "value": "application/json"}],
+							"body": "{\n    \"id\": 2,\n    \"email\": \"john@example.com\",\n    \"first_name\": \"John\",\n    \"last_name\": \"Doe\",\n    \"role\": \"customer\",\n    \"is_active\": true,\n    \"date_joined\": \"2026-01-20T08:00:00Z\"\n}"
+						}
+					]
+				},
+				{
+					"name": "Update User (PUT)",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"email\": \"john.updated@example.com\",\n    \"first_name\": \"John\",\n    \"last_name\": \"Smith\",\n    \"role\": \"data_viewer\",\n    \"is_active\": true\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/auth/users/{{user_id}}/",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "auth", "users", "{{user_id}}", ""]
+						},
+						"description": "Fully update a user. Admin only. All fields are required."
+					},
+					"response": [
+						{
+							"name": "200 — User updated",
+							"status": "OK",
+							"code": 200,
+							"header": [{"key": "Content-Type", "value": "application/json"}],
+							"body": "{\n    \"id\": 2,\n    \"email\": \"john.updated@example.com\",\n    \"first_name\": \"John\",\n    \"last_name\": \"Smith\",\n    \"role\": \"data_viewer\",\n    \"is_active\": true\n}"
+						}
+					]
+				},
+				{
+					"name": "Update User (PATCH)",
+					"request": {
+						"method": "PATCH",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"role\": \"data_analyst\"\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/auth/users/{{user_id}}/",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "auth", "users", "{{user_id}}", ""]
+						},
+						"description": "Partially update a user. Admin only. Only include the fields you want to change."
+					},
+					"response": [
+						{
+							"name": "200 — User patched",
+							"status": "OK",
+							"code": 200,
+							"header": [{"key": "Content-Type", "value": "application/json"}],
+							"body": "{\n    \"id\": 2,\n    \"email\": \"john.updated@example.com\",\n    \"first_name\": \"John\",\n    \"last_name\": \"Smith\",\n    \"role\": \"data_analyst\",\n    \"is_active\": true\n}"
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "Surveys",
+			"description": "Survey structure management: surveys, sections, fields, conditional rules, and field dependencies.",
+			"item": [
+				{
+					"name": "Surveys",
+					"description": "Top-level survey CRUD. Admins have full access; other authenticated users have read-only access. Customers only see published surveys.",
+					"item": [
+						{
+							"name": "List all surveys",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/api/v1/surveys/?status=draft&search=satisfaction&ordering=-created_at",
+									"host": ["{{base_url}}"],
+									"path": ["api", "v1", "surveys", ""],
+									"query": [
+										{
+											"key": "status",
+											"value": "draft",
+											"description": "Filter by status: draft, published, archived"
+										},
+										{
+											"key": "search",
+											"value": "satisfaction",
+											"description": "Search in title and description"
+										},
+										{
+											"key": "ordering",
+											"value": "-created_at",
+											"description": "Order by: created_at, title (prefix with - for descending)"
+										}
+									]
+								},
+								"description": "List all surveys with optional filtering by status, search, and ordering. Customers only see published surveys."
+							},
+							"response": [
+								{
+									"name": "200 — Paginated survey list",
+									"status": "OK",
+									"code": 200,
+									"header": [{"key": "Content-Type", "value": "application/json"}],
+									"body": "{\n    \"count\": 2,\n    \"next\": null,\n    \"previous\": null,\n    \"results\": [\n        {\n            \"id\": 1,\n            \"title\": \"Customer Satisfaction Survey\",\n            \"description\": \"Help us improve our services\",\n            \"created_by\": \"admin@example.com (Admin)\",\n            \"status\": \"draft\",\n            \"created_at\": \"2026-03-01T10:00:00Z\",\n            \"updated_at\": \"2026-03-01T10:00:00Z\"\n        },\n        {\n            \"id\": 2,\n            \"title\": \"Employee Satisfaction Survey\",\n            \"description\": \"Annual employee feedback\",\n            \"created_by\": \"admin@example.com (Admin)\",\n            \"status\": \"draft\",\n            \"created_at\": \"2026-02-28T09:00:00Z\",\n            \"updated_at\": \"2026-02-28T09:00:00Z\"\n        }\n    ]\n}"
+								}
+							]
+						},
+						{
+							"name": "Create a new survey",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"type": "text/javascript",
+										"exec": [
+											"if (pm.response.code === 201) {",
+											"    var json = pm.response.json();",
+											"    pm.collectionVariables.set('survey_id', json.id);",
+											"    pm.test('Survey created as draft', function () {",
+											"        pm.expect(json.status).to.eql('draft');",
+											"    });",
+											"}"
+										]
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"title\": \"Customer Satisfaction Survey\",\n    \"description\": \"Help us improve our services by sharing your feedback.\",\n    \"status\": \"draft\"\n}"
+								},
+								"url": {
+									"raw": "{{base_url}}/api/v1/surveys/",
+									"host": ["{{base_url}}"],
+									"path": ["api", "v1", "surveys", ""]
+								},
+								"description": "Create a new survey. Admin only.\n\nNew surveys must be created with `draft` status. Status transitions: draft -> published -> archived.\n\nThe `survey_id` collection variable is automatically set from the response."
+							},
+							"response": [
+								{
+									"name": "201 — Survey created",
+									"status": "Created",
+									"code": 201,
+									"header": [{"key": "Content-Type", "value": "application/json"}],
+									"body": "{\n    \"id\": 1,\n    \"title\": \"Customer Satisfaction Survey\",\n    \"description\": \"Help us improve our services by sharing your feedback.\",\n    \"status\": \"draft\"\n}"
+								}
+							]
+						},
+						{
+							"name": "Retrieve a survey",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/api/v1/surveys/{{survey_id}}/",
+									"host": ["{{base_url}}"],
+									"path": ["api", "v1", "surveys", "{{survey_id}}", ""]
+								},
+								"description": "Retrieve a survey with its full structure: sections, fields, conditional rules, and field dependencies.\n\nResponse is cached in Redis for 15 minutes. Non-admin users only see sections that contain fields."
+							},
+							"response": [
+								{
+									"name": "200 — Full survey detail",
+									"status": "OK",
+									"code": 200,
+									"header": [{"key": "Content-Type", "value": "application/json"}],
+									"body": "{\n    \"id\": 1,\n    \"title\": \"Customer Satisfaction Survey\",\n    \"description\": \"Help us improve our services by sharing your feedback.\",\n    \"created_by\": \"admin@example.com (Admin)\",\n    \"status\": \"published\",\n    \"created_at\": \"2026-03-01T10:00:00Z\",\n    \"updated_at\": \"2026-03-02T14:30:00Z\",\n    \"sections\": [\n        {\n            \"id\": 1,\n            \"survey\": 1,\n            \"title\": \"Personal Information\",\n            \"description\": \"Basic details about you\",\n            \"order\": 1,\n            \"fields\": [\n                {\n                    \"id\": 1,\n                    \"section\": 1,\n                    \"label\": \"Full Name\",\n                    \"field_type\": \"text\",\n                    \"required\": true,\n                    \"order\": 1,\n                    \"options\": [],\n                    \"is_encrypted\": false,\n                    \"validation_rules\": {\"min_length\": 2, \"max_length\": 100}\n                },\n                {\n                    \"id\": 2,\n                    \"section\": 1,\n                    \"label\": \"Email Address\",\n                    \"field_type\": \"email\",\n                    \"required\": true,\n                    \"order\": 2,\n                    \"options\": [],\n                    \"is_encrypted\": true,\n                    \"validation_rules\": {}\n                }\n            ]\n        },\n        {\n            \"id\": 2,\n            \"survey\": 1,\n            \"title\": \"Feedback\",\n            \"description\": \"Your experience with our service\",\n            \"order\": 2,\n            \"fields\": [\n                {\n                    \"id\": 3,\n                    \"section\": 2,\n                    \"label\": \"Overall Rating\",\n                    \"field_type\": \"dropdown\",\n                    \"required\": true,\n                    \"order\": 1,\n                    \"options\": [\"Excellent\", \"Good\", \"Average\", \"Poor\"],\n                    \"is_encrypted\": false,\n                    \"validation_rules\": {}\n                },\n                {\n                    \"id\": 4,\n                    \"section\": 2,\n                    \"label\": \"Comments\",\n                    \"field_type\": \"textarea\",\n                    \"required\": false,\n                    \"order\": 2,\n                    \"options\": [],\n                    \"is_encrypted\": false,\n                    \"validation_rules\": {\"max_length\": 1000}\n                }\n            ]\n        }\n    ],\n    \"conditional_rules\": [\n        {\n            \"id\": 1,\n            \"target_section\": 2,\n            \"target_field\": null,\n            \"depends_on_field\": 1,\n            \"operator\": \"not_equals\",\n            \"value\": \"\"\n        }\n    ],\n    \"field_dependencies\": [\n        {\n            \"id\": 1,\n            \"dependent_field\": 4,\n            \"depends_on_field\": 3,\n            \"operator\": \"equals\",\n            \"value\": \"Poor\",\n            \"action\": \"set_value\",\n            \"action_value\": \"Please tell us what went wrong.\"\n        }\n    ]\n}"
+								}
+							]
+						},
+						{
+							"name": "Update a survey (PUT)",
+							"request": {
+								"method": "PUT",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"title\": \"Customer Satisfaction Survey 2026\",\n    \"description\": \"Updated description for the annual survey.\",\n    \"status\": \"draft\"\n}"
+								},
+								"url": {
+									"raw": "{{base_url}}/api/v1/surveys/{{survey_id}}/",
+									"host": ["{{base_url}}"],
+									"path": ["api", "v1", "surveys", "{{survey_id}}", ""]
+								},
+								"description": "Fully update a survey. Admin only.\n\nStatus transitions: draft -> published -> archived. Publishing requires at least one section with at least one field."
+							},
+							"response": [
+								{
+									"name": "200 — Survey updated",
+									"status": "OK",
+									"code": 200,
+									"header": [{"key": "Content-Type", "value": "application/json"}],
+									"body": "{\n    \"id\": 1,\n    \"title\": \"Customer Satisfaction Survey 2026\",\n    \"description\": \"Updated description for the annual survey.\",\n    \"status\": \"draft\"\n}"
+								}
+							]
+						},
+						{
+							"name": "Partially update a survey (PATCH)",
+							"request": {
+								"method": "PATCH",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"status\": \"published\"\n}"
+								},
+								"url": {
+									"raw": "{{base_url}}/api/v1/surveys/{{survey_id}}/",
+									"host": ["{{base_url}}"],
+									"path": ["api", "v1", "surveys", "{{survey_id}}", ""]
+								},
+								"description": "Partially update a survey. Admin only. Useful for status transitions.\n\nTo publish, the survey must have at least one section with at least one field."
+							},
+							"response": [
+								{
+									"name": "200 — Status changed to published",
+									"status": "OK",
+									"code": 200,
+									"header": [{"key": "Content-Type", "value": "application/json"}],
+									"body": "{\n    \"id\": 1,\n    \"title\": \"Customer Satisfaction Survey 2026\",\n    \"description\": \"Updated description for the annual survey.\",\n    \"status\": \"published\"\n}"
+								}
+							]
+						},
+						{
+							"name": "Delete a survey",
+							"request": {
+								"method": "DELETE",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/api/v1/surveys/{{survey_id}}/",
+									"host": ["{{base_url}}"],
+									"path": ["api", "v1", "surveys", "{{survey_id}}", ""]
+								},
+								"description": "Delete a survey and all its related data (sections, fields, rules, dependencies, responses). Admin only."
+							},
+							"response": [
+								{
+									"name": "204 — Survey deleted",
+									"status": "No Content",
+									"code": 204,
+									"header": [],
+									"body": ""
+								}
+							]
+						}
+					]
+				},
+				{
+					"name": "Sections",
+					"description": "Manage sections within a survey. Admin only. Survey must be in `draft` status for write operations.",
+					"item": [
+						{
+							"name": "List sections in a survey",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/api/v1/surveys/{{survey_id}}/sections/",
+									"host": ["{{base_url}}"],
+									"path": ["api", "v1", "surveys", "{{survey_id}}", "sections", ""]
+								},
+								"description": "List all sections in a survey, ordered by `order`. Each section includes its nested fields."
+							},
+							"response": [
+								{
+									"name": "200 — Section list with fields",
+									"status": "OK",
+									"code": 200,
+									"header": [{"key": "Content-Type", "value": "application/json"}],
+									"body": "[\n    {\n        \"id\": 1,\n        \"survey\": 1,\n        \"title\": \"Personal Information\",\n        \"description\": \"Basic details about you\",\n        \"order\": 1,\n        \"fields\": [\n            {\n                \"id\": 1,\n                \"section\": 1,\n                \"label\": \"Full Name\",\n                \"field_type\": \"text\",\n                \"required\": true,\n                \"order\": 1,\n                \"options\": [],\n                \"is_encrypted\": false,\n                \"validation_rules\": {}\n            }\n        ]\n    },\n    {\n        \"id\": 2,\n        \"survey\": 1,\n        \"title\": \"Feedback\",\n        \"description\": \"\",\n        \"order\": 2,\n        \"fields\": []\n    }\n]"
+								}
+							]
+						},
+						{
+							"name": "Create a section",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"type": "text/javascript",
+										"exec": [
+											"if (pm.response.code === 201) {",
+											"    var json = pm.response.json();",
+											"    pm.collectionVariables.set('section_id', json.id);",
+											"}"
+										]
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"title\": \"Personal Information\",\n    \"description\": \"Basic details about you\",\n    \"order\": 1\n}"
+								},
+								"url": {
+									"raw": "{{base_url}}/api/v1/surveys/{{survey_id}}/sections/",
+									"host": ["{{base_url}}"],
+									"path": ["api", "v1", "surveys", "{{survey_id}}", "sections", ""]
+								},
+								"description": "Create a section in a draft survey. Admin only.\n\nIf `order` is omitted, it auto-assigns the next available order number."
+							},
+							"response": [
+								{
+									"name": "201 — Section created",
+									"status": "Created",
+									"code": 201,
+									"header": [{"key": "Content-Type", "value": "application/json"}],
+									"body": "{\n    \"id\": 1,\n    \"survey\": 1,\n    \"title\": \"Personal Information\",\n    \"description\": \"Basic details about you\",\n    \"order\": 1\n}"
+								}
+							]
+						},
+						{
+							"name": "Retrieve a section",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/api/v1/surveys/{{survey_id}}/sections/{{section_id}}/",
+									"host": ["{{base_url}}"],
+									"path": ["api", "v1", "surveys", "{{survey_id}}", "sections", "{{section_id}}", ""]
+								},
+								"description": "Retrieve a single section with its nested fields."
+							},
+							"response": [
+								{
+									"name": "200 — Section detail",
+									"status": "OK",
+									"code": 200,
+									"header": [{"key": "Content-Type", "value": "application/json"}],
+									"body": "{\n    \"id\": 1,\n    \"survey\": 1,\n    \"title\": \"Personal Information\",\n    \"description\": \"Basic details about you\",\n    \"order\": 1,\n    \"fields\": [\n        {\n            \"id\": 1,\n            \"section\": 1,\n            \"label\": \"Full Name\",\n            \"field_type\": \"text\",\n            \"required\": true,\n            \"order\": 1,\n            \"options\": [],\n            \"is_encrypted\": false,\n            \"validation_rules\": {}\n        }\n    ]\n}"
+								}
+							]
+						},
+						{
+							"name": "Update a section (PUT)",
+							"request": {
+								"method": "PUT",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"title\": \"About You\",\n    \"description\": \"Tell us about yourself\",\n    \"order\": 1\n}"
+								},
+								"url": {
+									"raw": "{{base_url}}/api/v1/surveys/{{survey_id}}/sections/{{section_id}}/",
+									"host": ["{{base_url}}"],
+									"path": ["api", "v1", "surveys", "{{survey_id}}", "sections", "{{section_id}}", ""]
+								},
+								"description": "Fully update a section. Admin only. Survey must be in draft status."
+							},
+							"response": [
+								{
+									"name": "200 — Section updated",
+									"status": "OK",
+									"code": 200,
+									"header": [{"key": "Content-Type", "value": "application/json"}],
+									"body": "{\n    \"id\": 1,\n    \"survey\": 1,\n    \"title\": \"About You\",\n    \"description\": \"Tell us about yourself\",\n    \"order\": 1\n}"
+								}
+							]
+						},
+						{
+							"name": "Partially update a section (PATCH)",
+							"request": {
+								"method": "PATCH",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"title\": \"Your Details\"\n}"
+								},
+								"url": {
+									"raw": "{{base_url}}/api/v1/surveys/{{survey_id}}/sections/{{section_id}}/",
+									"host": ["{{base_url}}"],
+									"path": ["api", "v1", "surveys", "{{survey_id}}", "sections", "{{section_id}}", ""]
+								},
+								"description": "Partially update a section. Admin only. Survey must be in draft status."
+							},
+							"response": [
+								{
+									"name": "200 — Section patched",
+									"status": "OK",
+									"code": 200,
+									"header": [{"key": "Content-Type", "value": "application/json"}],
+									"body": "{\n    \"id\": 1,\n    \"survey\": 1,\n    \"title\": \"Your Details\",\n    \"description\": \"Basic details about you\",\n    \"order\": 1\n}"
+								}
+							]
+						},
+						{
+							"name": "Delete a section",
+							"request": {
+								"method": "DELETE",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/api/v1/surveys/{{survey_id}}/sections/{{section_id}}/",
+									"host": ["{{base_url}}"],
+									"path": ["api", "v1", "surveys", "{{survey_id}}", "sections", "{{section_id}}", ""]
+								},
+								"description": "Delete a section and all its fields. Admin only. Survey must be in draft status."
+							},
+							"response": [
+								{
+									"name": "204 — Section deleted",
+									"status": "No Content",
+									"code": 204,
+									"header": [],
+									"body": ""
+								}
+							]
+						}
+					]
+				},
+				{
+					"name": "Fields",
+					"description": "Manage fields within a section. Admin only. Survey must be in `draft` status for write operations.\n\nField types: `text`, `number`, `date`, `dropdown`, `checkbox`, `radio`, `textarea`, `email`.\n\nDropdown, radio, and checkbox fields require `options` (array of strings). Number fields support `min`/`max` validation rules. Text/textarea support `min_length`/`max_length`/`regex`.",
+					"item": [
+						{
+							"name": "List fields in a section",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/api/v1/surveys/{{survey_id}}/sections/{{section_id}}/fields/",
+									"host": ["{{base_url}}"],
+									"path": ["api", "v1", "surveys", "{{survey_id}}", "sections", "{{section_id}}", "fields", ""]
+								},
+								"description": "List all fields in a section, ordered by `order`."
+							},
+							"response": [
+								{
+									"name": "200 — Field list",
+									"status": "OK",
+									"code": 200,
+									"header": [{"key": "Content-Type", "value": "application/json"}],
+									"body": "[\n    {\n        \"id\": 1,\n        \"section\": 1,\n        \"label\": \"Full Name\",\n        \"field_type\": \"text\",\n        \"required\": true,\n        \"order\": 1,\n        \"options\": [],\n        \"is_encrypted\": false,\n        \"validation_rules\": {\"min_length\": 2, \"max_length\": 100}\n    },\n    {\n        \"id\": 2,\n        \"section\": 1,\n        \"label\": \"Email\",\n        \"field_type\": \"email\",\n        \"required\": true,\n        \"order\": 2,\n        \"options\": [],\n        \"is_encrypted\": true,\n        \"validation_rules\": {}\n    }\n]"
+								}
+							]
+						},
+						{
+							"name": "Create a text field",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"type": "text/javascript",
+										"exec": [
+											"if (pm.response.code === 201) {",
+											"    var json = pm.response.json();",
+											"    pm.collectionVariables.set('field_id', json.id);",
+											"}"
+										]
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"label\": \"Full Name\",\n    \"field_type\": \"text\",\n    \"required\": true,\n    \"options\": [],\n    \"is_encrypted\": false,\n    \"validation_rules\": {\n        \"min_length\": 2,\n        \"max_length\": 100\n    }\n}"
+								},
+								"url": {
+									"raw": "{{base_url}}/api/v1/surveys/{{survey_id}}/sections/{{section_id}}/fields/",
+									"host": ["{{base_url}}"],
+									"path": ["api", "v1", "surveys", "{{survey_id}}", "sections", "{{section_id}}", "fields", ""]
+								},
+								"description": "Create a text field with min/max length validation. Order is auto-assigned if omitted."
+							},
+							"response": [
+								{
+									"name": "201 — Text field created",
+									"status": "Created",
+									"code": 201,
+									"header": [{"key": "Content-Type", "value": "application/json"}],
+									"body": "{\n    \"id\": 1,\n    \"section\": 1,\n    \"label\": \"Full Name\",\n    \"field_type\": \"text\",\n    \"required\": true,\n    \"order\": 1,\n    \"options\": [],\n    \"is_encrypted\": false,\n    \"validation_rules\": {\"min_length\": 2, \"max_length\": 100}\n}"
+								}
+							]
+						},
+						{
+							"name": "Create a number field",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"label\": \"Age\",\n    \"field_type\": \"number\",\n    \"required\": true,\n    \"options\": [],\n    \"is_encrypted\": false,\n    \"validation_rules\": {\n        \"min\": 18,\n        \"max\": 120\n    }\n}"
+								},
+								"url": {
+									"raw": "{{base_url}}/api/v1/surveys/{{survey_id}}/sections/{{section_id}}/fields/",
+									"host": ["{{base_url}}"],
+									"path": ["api", "v1", "surveys", "{{survey_id}}", "sections", "{{section_id}}", "fields", ""]
+								},
+								"description": "Create a number field with min/max validation rules."
+							},
+							"response": [
+								{
+									"name": "201 — Number field created",
+									"status": "Created",
+									"code": 201,
+									"header": [{"key": "Content-Type", "value": "application/json"}],
+									"body": "{\n    \"id\": 2,\n    \"section\": 1,\n    \"label\": \"Age\",\n    \"field_type\": \"number\",\n    \"required\": true,\n    \"order\": 2,\n    \"options\": [],\n    \"is_encrypted\": false,\n    \"validation_rules\": {\"min\": 18, \"max\": 120}\n}"
+								}
+							]
+						},
+						{
+							"name": "Create a dropdown field",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"label\": \"Country\",\n    \"field_type\": \"dropdown\",\n    \"required\": true,\n    \"options\": [\"Kuwait\", \"UAE\", \"Saudi Arabia\", \"Bahrain\", \"Qatar\", \"Oman\"],\n    \"is_encrypted\": false,\n    \"validation_rules\": {}\n}"
+								},
+								"url": {
+									"raw": "{{base_url}}/api/v1/surveys/{{survey_id}}/sections/{{section_id}}/fields/",
+									"host": ["{{base_url}}"],
+									"path": ["api", "v1", "surveys", "{{survey_id}}", "sections", "{{section_id}}", "fields", ""]
+								},
+								"description": "Create a dropdown field. The `options` array is required and must contain at least one value."
+							},
+							"response": [
+								{
+									"name": "201 — Dropdown field created",
+									"status": "Created",
+									"code": 201,
+									"header": [{"key": "Content-Type", "value": "application/json"}],
+									"body": "{\n    \"id\": 3,\n    \"section\": 1,\n    \"label\": \"Country\",\n    \"field_type\": \"dropdown\",\n    \"required\": true,\n    \"order\": 3,\n    \"options\": [\"Kuwait\", \"UAE\", \"Saudi Arabia\", \"Bahrain\", \"Qatar\", \"Oman\"],\n    \"is_encrypted\": false,\n    \"validation_rules\": {}\n}"
+								}
+							]
+						},
+						{
+							"name": "Create a checkbox field",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"label\": \"Interests\",\n    \"field_type\": \"checkbox\",\n    \"required\": false,\n    \"options\": [\"Technology\", \"Sports\", \"Music\", \"Travel\", \"Food\"],\n    \"is_encrypted\": false,\n    \"validation_rules\": {}\n}"
+								},
+								"url": {
+									"raw": "{{base_url}}/api/v1/surveys/{{survey_id}}/sections/{{section_id}}/fields/",
+									"host": ["{{base_url}}"],
+									"path": ["api", "v1", "surveys", "{{survey_id}}", "sections", "{{section_id}}", "fields", ""]
+								},
+								"description": "Create a checkbox field (multiple selections). The submitted value is an array of selected options."
+							},
+							"response": [
+								{
+									"name": "201 — Checkbox field created",
+									"status": "Created",
+									"code": 201,
+									"header": [{"key": "Content-Type", "value": "application/json"}],
+									"body": "{\n    \"id\": 4,\n    \"section\": 1,\n    \"label\": \"Interests\",\n    \"field_type\": \"checkbox\",\n    \"required\": false,\n    \"order\": 4,\n    \"options\": [\"Technology\", \"Sports\", \"Music\", \"Travel\", \"Food\"],\n    \"is_encrypted\": false,\n    \"validation_rules\": {}\n}"
+								}
+							]
+						},
+						{
+							"name": "Create a radio field",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"label\": \"Gender\",\n    \"field_type\": \"radio\",\n    \"required\": true,\n    \"options\": [\"Male\", \"Female\", \"Prefer not to say\"],\n    \"is_encrypted\": false,\n    \"validation_rules\": {}\n}"
+								},
+								"url": {
+									"raw": "{{base_url}}/api/v1/surveys/{{survey_id}}/sections/{{section_id}}/fields/",
+									"host": ["{{base_url}}"],
+									"path": ["api", "v1", "surveys", "{{survey_id}}", "sections", "{{section_id}}", "fields", ""]
+								},
+								"description": "Create a radio button field (single selection from options)."
+							},
+							"response": [
+								{
+									"name": "201 — Radio field created",
+									"status": "Created",
+									"code": 201,
+									"header": [{"key": "Content-Type", "value": "application/json"}],
+									"body": "{\n    \"id\": 5,\n    \"section\": 1,\n    \"label\": \"Gender\",\n    \"field_type\": \"radio\",\n    \"required\": true,\n    \"order\": 5,\n    \"options\": [\"Male\", \"Female\", \"Prefer not to say\"],\n    \"is_encrypted\": false,\n    \"validation_rules\": {}\n}"
+								}
+							]
+						},
+						{
+							"name": "Create a date field",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"label\": \"Date of Birth\",\n    \"field_type\": \"date\",\n    \"required\": false,\n    \"options\": [],\n    \"is_encrypted\": true,\n    \"validation_rules\": {}\n}"
+								},
+								"url": {
+									"raw": "{{base_url}}/api/v1/surveys/{{survey_id}}/sections/{{section_id}}/fields/",
+									"host": ["{{base_url}}"],
+									"path": ["api", "v1", "surveys", "{{survey_id}}", "sections", "{{section_id}}", "fields", ""]
+								},
+								"description": "Create a date field. Values are submitted as `YYYY-MM-DD` strings. Set `is_encrypted: true` to encrypt the stored value."
+							},
+							"response": [
+								{
+									"name": "201 — Date field created",
+									"status": "Created",
+									"code": 201,
+									"header": [{"key": "Content-Type", "value": "application/json"}],
+									"body": "{\n    \"id\": 6,\n    \"section\": 1,\n    \"label\": \"Date of Birth\",\n    \"field_type\": \"date\",\n    \"required\": false,\n    \"order\": 6,\n    \"options\": [],\n    \"is_encrypted\": true,\n    \"validation_rules\": {}\n}"
+								}
+							]
+						},
+						{
+							"name": "Create an email field",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"label\": \"Contact Email\",\n    \"field_type\": \"email\",\n    \"required\": true,\n    \"options\": [],\n    \"is_encrypted\": true,\n    \"validation_rules\": {}\n}"
+								},
+								"url": {
+									"raw": "{{base_url}}/api/v1/surveys/{{survey_id}}/sections/{{section_id}}/fields/",
+									"host": ["{{base_url}}"],
+									"path": ["api", "v1", "surveys", "{{survey_id}}", "sections", "{{section_id}}", "fields", ""]
+								},
+								"description": "Create an email field. Values are validated as email addresses. Commonly encrypted."
+							},
+							"response": [
+								{
+									"name": "201 — Email field created",
+									"status": "Created",
+									"code": 201,
+									"header": [{"key": "Content-Type", "value": "application/json"}],
+									"body": "{\n    \"id\": 7,\n    \"section\": 1,\n    \"label\": \"Contact Email\",\n    \"field_type\": \"email\",\n    \"required\": true,\n    \"order\": 7,\n    \"options\": [],\n    \"is_encrypted\": true,\n    \"validation_rules\": {}\n}"
+								}
+							]
+						},
+						{
+							"name": "Create a textarea field",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"label\": \"Additional Comments\",\n    \"field_type\": \"textarea\",\n    \"required\": false,\n    \"options\": [],\n    \"is_encrypted\": false,\n    \"validation_rules\": {\n        \"max_length\": 2000\n    }\n}"
+								},
+								"url": {
+									"raw": "{{base_url}}/api/v1/surveys/{{survey_id}}/sections/{{section_id}}/fields/",
+									"host": ["{{base_url}}"],
+									"path": ["api", "v1", "surveys", "{{survey_id}}", "sections", "{{section_id}}", "fields", ""]
+								},
+								"description": "Create a textarea field for long-form text input."
+							},
+							"response": [
+								{
+									"name": "201 — Textarea field created",
+									"status": "Created",
+									"code": 201,
+									"header": [{"key": "Content-Type", "value": "application/json"}],
+									"body": "{\n    \"id\": 8,\n    \"section\": 1,\n    \"label\": \"Additional Comments\",\n    \"field_type\": \"textarea\",\n    \"required\": false,\n    \"order\": 8,\n    \"options\": [],\n    \"is_encrypted\": false,\n    \"validation_rules\": {\"max_length\": 2000}\n}"
+								}
+							]
+						},
+						{
+							"name": "Retrieve a field",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/api/v1/surveys/{{survey_id}}/sections/{{section_id}}/fields/{{field_id}}/",
+									"host": ["{{base_url}}"],
+									"path": ["api", "v1", "surveys", "{{survey_id}}", "sections", "{{section_id}}", "fields", "{{field_id}}", ""]
+								},
+								"description": "Retrieve a single field by ID."
+							},
+							"response": [
+								{
+									"name": "200 — Field detail",
+									"status": "OK",
+									"code": 200,
+									"header": [{"key": "Content-Type", "value": "application/json"}],
+									"body": "{\n    \"id\": 1,\n    \"section\": 1,\n    \"label\": \"Full Name\",\n    \"field_type\": \"text\",\n    \"required\": true,\n    \"order\": 1,\n    \"options\": [],\n    \"is_encrypted\": false,\n    \"validation_rules\": {\"min_length\": 2, \"max_length\": 100}\n}"
+								}
+							]
+						},
+						{
+							"name": "Update a field (PUT)",
+							"request": {
+								"method": "PUT",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"label\": \"Your Full Name\",\n    \"field_type\": \"text\",\n    \"required\": true,\n    \"order\": 1,\n    \"options\": [],\n    \"is_encrypted\": false,\n    \"validation_rules\": {\n        \"min_length\": 2,\n        \"max_length\": 150\n    }\n}"
+								},
+								"url": {
+									"raw": "{{base_url}}/api/v1/surveys/{{survey_id}}/sections/{{section_id}}/fields/{{field_id}}/",
+									"host": ["{{base_url}}"],
+									"path": ["api", "v1", "surveys", "{{survey_id}}", "sections", "{{section_id}}", "fields", "{{field_id}}", ""]
+								},
+								"description": "Fully update a field. Admin only. Survey must be in draft status."
+							},
+							"response": [
+								{
+									"name": "200 — Field updated",
+									"status": "OK",
+									"code": 200,
+									"header": [{"key": "Content-Type", "value": "application/json"}],
+									"body": "{\n    \"id\": 1,\n    \"section\": 1,\n    \"label\": \"Your Full Name\",\n    \"field_type\": \"text\",\n    \"required\": true,\n    \"order\": 1,\n    \"options\": [],\n    \"is_encrypted\": false,\n    \"validation_rules\": {\"min_length\": 2, \"max_length\": 150}\n}"
+								}
+							]
+						},
+						{
+							"name": "Partially update a field (PATCH)",
+							"request": {
+								"method": "PATCH",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"required\": false\n}"
+								},
+								"url": {
+									"raw": "{{base_url}}/api/v1/surveys/{{survey_id}}/sections/{{section_id}}/fields/{{field_id}}/",
+									"host": ["{{base_url}}"],
+									"path": ["api", "v1", "surveys", "{{survey_id}}", "sections", "{{section_id}}", "fields", "{{field_id}}", ""]
+								},
+								"description": "Partially update a field. Admin only. Survey must be in draft status."
+							},
+							"response": [
+								{
+									"name": "200 — Field patched",
+									"status": "OK",
+									"code": 200,
+									"header": [{"key": "Content-Type", "value": "application/json"}],
+									"body": "{\n    \"id\": 1,\n    \"section\": 1,\n    \"label\": \"Your Full Name\",\n    \"field_type\": \"text\",\n    \"required\": false,\n    \"order\": 1,\n    \"options\": [],\n    \"is_encrypted\": false,\n    \"validation_rules\": {\"min_length\": 2, \"max_length\": 150}\n}"
+								}
+							]
+						},
+						{
+							"name": "Delete a field",
+							"request": {
+								"method": "DELETE",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/api/v1/surveys/{{survey_id}}/sections/{{section_id}}/fields/{{field_id}}/",
+									"host": ["{{base_url}}"],
+									"path": ["api", "v1", "surveys", "{{survey_id}}", "sections", "{{section_id}}", "fields", "{{field_id}}", ""]
+								},
+								"description": "Delete a field. Admin only. Survey must be in draft status."
+							},
+							"response": [
+								{
+									"name": "204 — Field deleted",
+									"status": "No Content",
+									"code": 204,
+									"header": [],
+									"body": ""
+								}
+							]
+						}
+					]
+				},
+				{
+					"name": "Conditional Rules",
+					"description": "Control visibility of sections or fields based on another field's answer.\n\nExactly one of `target_section` or `target_field` must be set. All referenced objects must belong to the same survey.\n\nOperators: `equals`, `not_equals`, `contains`, `greater_than`, `less_than`, `in`.\n\nOR logic: if multiple rules target the same section/field, it is shown when ANY rule is satisfied.",
+					"item": [
+						{
+							"name": "List conditional rules",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/api/v1/surveys/{{survey_id}}/conditional-rules/",
+									"host": ["{{base_url}}"],
+									"path": ["api", "v1", "surveys", "{{survey_id}}", "conditional-rules", ""]
+								},
+								"description": "List all conditional rules for a survey."
+							},
+							"response": [
+								{
+									"name": "200 — Rule list",
+									"status": "OK",
+									"code": 200,
+									"header": [{"key": "Content-Type", "value": "application/json"}],
+									"body": "[\n    {\n        \"id\": 1,\n        \"target_section\": 2,\n        \"target_field\": null,\n        \"depends_on_field\": 3,\n        \"operator\": \"equals\",\n        \"value\": \"Yes\"\n    },\n    {\n        \"id\": 2,\n        \"target_section\": null,\n        \"target_field\": 5,\n        \"depends_on_field\": 3,\n        \"operator\": \"not_equals\",\n        \"value\": \"\"\n    }\n]"
+								}
+							]
+						},
+						{
+							"name": "Create a rule (show section)",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"type": "text/javascript",
+										"exec": [
+											"if (pm.response.code === 201) {",
+											"    var json = pm.response.json();",
+											"    pm.collectionVariables.set('rule_id', json.id);",
+											"}"
+										]
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"target_section\": {{section_id}},\n    \"target_field\": null,\n    \"depends_on_field\": {{field_id}},\n    \"operator\": \"equals\",\n    \"value\": \"Yes\"\n}"
+								},
+								"url": {
+									"raw": "{{base_url}}/api/v1/surveys/{{survey_id}}/conditional-rules/",
+									"host": ["{{base_url}}"],
+									"path": ["api", "v1", "surveys", "{{survey_id}}", "conditional-rules", ""]
+								},
+								"description": "Create a conditional rule that shows a section when a field's answer equals a value.\n\nExample: Show section 2 only when field 1 answer equals \"Yes\"."
+							},
+							"response": [
+								{
+									"name": "201 — Section visibility rule created",
+									"status": "Created",
+									"code": 201,
+									"header": [{"key": "Content-Type", "value": "application/json"}],
+									"body": "{\n    \"id\": 1,\n    \"target_section\": 2,\n    \"target_field\": null,\n    \"depends_on_field\": 1,\n    \"operator\": \"equals\",\n    \"value\": \"Yes\"\n}"
+								}
+							]
+						},
+						{
+							"name": "Create a rule (show field)",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"target_section\": null,\n    \"target_field\": {{field_id}},\n    \"depends_on_field\": 2,\n    \"operator\": \"greater_than\",\n    \"value\": 18\n}"
+								},
+								"url": {
+									"raw": "{{base_url}}/api/v1/surveys/{{survey_id}}/conditional-rules/",
+									"host": ["{{base_url}}"],
+									"path": ["api", "v1", "surveys", "{{survey_id}}", "conditional-rules", ""]
+								},
+								"description": "Create a conditional rule that shows a field when another field's answer is greater than a value.\n\nExample: Show field 3 only when field 2 (Age) is greater than 18."
+							},
+							"response": [
+								{
+									"name": "201 — Field visibility rule created",
+									"status": "Created",
+									"code": 201,
+									"header": [{"key": "Content-Type", "value": "application/json"}],
+									"body": "{\n    \"id\": 2,\n    \"target_section\": null,\n    \"target_field\": 3,\n    \"depends_on_field\": 2,\n    \"operator\": \"greater_than\",\n    \"value\": 18\n}"
+								}
+							]
+						},
+						{
+							"name": "Create a rule (in operator)",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"target_section\": {{section_id}},\n    \"target_field\": null,\n    \"depends_on_field\": {{field_id}},\n    \"operator\": \"in\",\n    \"value\": [\"Kuwait\", \"UAE\", \"Saudi Arabia\"]\n}"
+								},
+								"url": {
+									"raw": "{{base_url}}/api/v1/surveys/{{survey_id}}/conditional-rules/",
+									"host": ["{{base_url}}"],
+									"path": ["api", "v1", "surveys", "{{survey_id}}", "conditional-rules", ""]
+								},
+								"description": "Create a rule using the `in` operator. The `value` is a JSON array. The rule matches if the field's answer is in the array.\n\nExample: Show section only when Country is Kuwait, UAE, or Saudi Arabia."
+							},
+							"response": [
+								{
+									"name": "201 — Rule with in operator",
+									"status": "Created",
+									"code": 201,
+									"header": [{"key": "Content-Type", "value": "application/json"}],
+									"body": "{\n    \"id\": 3,\n    \"target_section\": 2,\n    \"target_field\": null,\n    \"depends_on_field\": 3,\n    \"operator\": \"in\",\n    \"value\": [\"Kuwait\", \"UAE\", \"Saudi Arabia\"]\n}"
+								}
+							]
+						},
+						{
+							"name": "Retrieve a conditional rule",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/api/v1/surveys/{{survey_id}}/conditional-rules/{{rule_id}}/",
+									"host": ["{{base_url}}"],
+									"path": ["api", "v1", "surveys", "{{survey_id}}", "conditional-rules", "{{rule_id}}", ""]
+								},
+								"description": "Retrieve a single conditional rule by ID."
+							},
+							"response": [
+								{
+									"name": "200 — Rule detail",
+									"status": "OK",
+									"code": 200,
+									"header": [{"key": "Content-Type", "value": "application/json"}],
+									"body": "{\n    \"id\": 1,\n    \"target_section\": 2,\n    \"target_field\": null,\n    \"depends_on_field\": 1,\n    \"operator\": \"equals\",\n    \"value\": \"Yes\"\n}"
+								}
+							]
+						},
+						{
+							"name": "Update a conditional rule (PUT)",
+							"request": {
+								"method": "PUT",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"target_section\": {{section_id}},\n    \"target_field\": null,\n    \"depends_on_field\": {{field_id}},\n    \"operator\": \"not_equals\",\n    \"value\": \"No\"\n}"
+								},
+								"url": {
+									"raw": "{{base_url}}/api/v1/surveys/{{survey_id}}/conditional-rules/{{rule_id}}/",
+									"host": ["{{base_url}}"],
+									"path": ["api", "v1", "surveys", "{{survey_id}}", "conditional-rules", "{{rule_id}}", ""]
+								},
+								"description": "Fully update a conditional rule. Admin only. Survey must be in draft status."
+							},
+							"response": [
+								{
+									"name": "200 — Rule updated",
+									"status": "OK",
+									"code": 200,
+									"header": [{"key": "Content-Type", "value": "application/json"}],
+									"body": "{\n    \"id\": 1,\n    \"target_section\": 2,\n    \"target_field\": null,\n    \"depends_on_field\": 1,\n    \"operator\": \"not_equals\",\n    \"value\": \"No\"\n}"
+								}
+							]
+						},
+						{
+							"name": "Partially update a conditional rule (PATCH)",
+							"request": {
+								"method": "PATCH",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"value\": \"Maybe\"\n}"
+								},
+								"url": {
+									"raw": "{{base_url}}/api/v1/surveys/{{survey_id}}/conditional-rules/{{rule_id}}/",
+									"host": ["{{base_url}}"],
+									"path": ["api", "v1", "surveys", "{{survey_id}}", "conditional-rules", "{{rule_id}}", ""]
+								},
+								"description": "Partially update a conditional rule. Admin only. Survey must be in draft status."
+							},
+							"response": [
+								{
+									"name": "200 — Rule patched",
+									"status": "OK",
+									"code": 200,
+									"header": [{"key": "Content-Type", "value": "application/json"}],
+									"body": "{\n    \"id\": 1,\n    \"target_section\": 2,\n    \"target_field\": null,\n    \"depends_on_field\": 1,\n    \"operator\": \"not_equals\",\n    \"value\": \"Maybe\"\n}"
+								}
+							]
+						},
+						{
+							"name": "Delete a conditional rule",
+							"request": {
+								"method": "DELETE",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/api/v1/surveys/{{survey_id}}/conditional-rules/{{rule_id}}/",
+									"host": ["{{base_url}}"],
+									"path": ["api", "v1", "surveys", "{{survey_id}}", "conditional-rules", "{{rule_id}}", ""]
+								},
+								"description": "Delete a conditional rule. Admin only. Survey must be in draft status."
+							},
+							"response": [
+								{
+									"name": "204 — Rule deleted",
+									"status": "No Content",
+									"code": 204,
+									"header": [],
+									"body": ""
+								}
+							]
+						}
+					]
+				},
+				{
+					"name": "Field Dependencies",
+					"description": "Cross-field dependencies that modify a field's options or value based on another field's answer.\n\nActions: `show_options` (filter dropdown/checkbox options), `hide_options` (remove options), `set_value` (set a field's value).\n\nOperators: `equals`, `not_equals`, `contains`, `greater_than`, `less_than`, `in`.",
+					"item": [
+						{
+							"name": "List field dependencies",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/api/v1/surveys/{{survey_id}}/field-dependencies/",
+									"host": ["{{base_url}}"],
+									"path": ["api", "v1", "surveys", "{{survey_id}}", "field-dependencies", ""]
+								},
+								"description": "List all field dependencies for a survey."
+							},
+							"response": [
+								{
+									"name": "200 — Dependency list",
+									"status": "OK",
+									"code": 200,
+									"header": [{"key": "Content-Type", "value": "application/json"}],
+									"body": "[\n    {\n        \"id\": 1,\n        \"dependent_field\": 4,\n        \"depends_on_field\": 3,\n        \"operator\": \"equals\",\n        \"value\": \"Kuwait\",\n        \"action\": \"show_options\",\n        \"action_value\": [\"Kuwait City\", \"Hawalli\", \"Ahmadi\"]\n    }\n]"
+								}
+							]
+						},
+						{
+							"name": "Create a dependency (show_options)",
+							"event": [
+								{
+									"listen": "test",
+									"script": {
+										"type": "text/javascript",
+										"exec": [
+											"if (pm.response.code === 201) {",
+											"    var json = pm.response.json();",
+											"    pm.collectionVariables.set('dependency_id', json.id);",
+											"}"
+										]
+									}
+								}
+							],
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"dependent_field\": 4,\n    \"depends_on_field\": 3,\n    \"operator\": \"equals\",\n    \"value\": \"Kuwait\",\n    \"action\": \"show_options\",\n    \"action_value\": [\"Kuwait City\", \"Hawalli\", \"Ahmadi\"]\n}"
+								},
+								"url": {
+									"raw": "{{base_url}}/api/v1/surveys/{{survey_id}}/field-dependencies/",
+									"host": ["{{base_url}}"],
+									"path": ["api", "v1", "surveys", "{{survey_id}}", "field-dependencies", ""]
+								},
+								"description": "Create a dependency that shows specific options on a dropdown/checkbox field when a condition is met.\n\nExample: When Country (field 3) equals \"Kuwait\", show only Kuwaiti cities in the City dropdown (field 4)."
+							},
+							"response": [
+								{
+									"name": "201 — show_options dependency created",
+									"status": "Created",
+									"code": 201,
+									"header": [{"key": "Content-Type", "value": "application/json"}],
+									"body": "{\n    \"id\": 1,\n    \"dependent_field\": 4,\n    \"depends_on_field\": 3,\n    \"operator\": \"equals\",\n    \"value\": \"Kuwait\",\n    \"action\": \"show_options\",\n    \"action_value\": [\"Kuwait City\", \"Hawalli\", \"Ahmadi\"]\n}"
+								}
+							]
+						},
+						{
+							"name": "Create a dependency (hide_options)",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"dependent_field\": 5,\n    \"depends_on_field\": 3,\n    \"operator\": \"equals\",\n    \"value\": \"Under 18\",\n    \"action\": \"hide_options\",\n    \"action_value\": [\"Driving\", \"Alcohol\"]\n}"
+								},
+								"url": {
+									"raw": "{{base_url}}/api/v1/surveys/{{survey_id}}/field-dependencies/",
+									"host": ["{{base_url}}"],
+									"path": ["api", "v1", "surveys", "{{survey_id}}", "field-dependencies", ""]
+								},
+								"description": "Create a dependency that hides specific options when a condition is met.\n\nExample: When Age Group equals \"Under 18\", hide age-restricted options."
+							},
+							"response": [
+								{
+									"name": "201 — hide_options dependency created",
+									"status": "Created",
+									"code": 201,
+									"header": [{"key": "Content-Type", "value": "application/json"}],
+									"body": "{\n    \"id\": 2,\n    \"dependent_field\": 5,\n    \"depends_on_field\": 3,\n    \"operator\": \"equals\",\n    \"value\": \"Under 18\",\n    \"action\": \"hide_options\",\n    \"action_value\": [\"Driving\", \"Alcohol\"]\n}"
+								}
+							]
+						},
+						{
+							"name": "Create a dependency (set_value)",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"dependent_field\": 6,\n    \"depends_on_field\": 3,\n    \"operator\": \"equals\",\n    \"value\": \"Poor\",\n    \"action\": \"set_value\",\n    \"action_value\": \"Please describe what went wrong.\"\n}"
+								},
+								"url": {
+									"raw": "{{base_url}}/api/v1/surveys/{{survey_id}}/field-dependencies/",
+									"host": ["{{base_url}}"],
+									"path": ["api", "v1", "surveys", "{{survey_id}}", "field-dependencies", ""]
+								},
+								"description": "Create a dependency that sets a field's value when a condition is met.\n\nExample: When Rating (field 3) equals \"Poor\", pre-fill the Comments field (field 6) with a prompt."
+							},
+							"response": [
+								{
+									"name": "201 — set_value dependency created",
+									"status": "Created",
+									"code": 201,
+									"header": [{"key": "Content-Type", "value": "application/json"}],
+									"body": "{\n    \"id\": 3,\n    \"dependent_field\": 6,\n    \"depends_on_field\": 3,\n    \"operator\": \"equals\",\n    \"value\": \"Poor\",\n    \"action\": \"set_value\",\n    \"action_value\": \"Please describe what went wrong.\"\n}"
+								}
+							]
+						},
+						{
+							"name": "Retrieve a field dependency",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/api/v1/surveys/{{survey_id}}/field-dependencies/{{dependency_id}}/",
+									"host": ["{{base_url}}"],
+									"path": ["api", "v1", "surveys", "{{survey_id}}", "field-dependencies", "{{dependency_id}}", ""]
+								},
+								"description": "Retrieve a single field dependency by ID."
+							},
+							"response": [
+								{
+									"name": "200 — Dependency detail",
+									"status": "OK",
+									"code": 200,
+									"header": [{"key": "Content-Type", "value": "application/json"}],
+									"body": "{\n    \"id\": 1,\n    \"dependent_field\": 4,\n    \"depends_on_field\": 3,\n    \"operator\": \"equals\",\n    \"value\": \"Kuwait\",\n    \"action\": \"show_options\",\n    \"action_value\": [\"Kuwait City\", \"Hawalli\", \"Ahmadi\"]\n}"
+								}
+							]
+						},
+						{
+							"name": "Update a field dependency (PUT)",
+							"request": {
+								"method": "PUT",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"dependent_field\": 4,\n    \"depends_on_field\": 3,\n    \"operator\": \"equals\",\n    \"value\": \"UAE\",\n    \"action\": \"show_options\",\n    \"action_value\": [\"Dubai\", \"Abu Dhabi\", \"Sharjah\"]\n}"
+								},
+								"url": {
+									"raw": "{{base_url}}/api/v1/surveys/{{survey_id}}/field-dependencies/{{dependency_id}}/",
+									"host": ["{{base_url}}"],
+									"path": ["api", "v1", "surveys", "{{survey_id}}", "field-dependencies", "{{dependency_id}}", ""]
+								},
+								"description": "Fully update a field dependency. Admin only. Survey must be in draft status."
+							},
+							"response": [
+								{
+									"name": "200 — Dependency updated",
+									"status": "OK",
+									"code": 200,
+									"header": [{"key": "Content-Type", "value": "application/json"}],
+									"body": "{\n    \"id\": 1,\n    \"dependent_field\": 4,\n    \"depends_on_field\": 3,\n    \"operator\": \"equals\",\n    \"value\": \"UAE\",\n    \"action\": \"show_options\",\n    \"action_value\": [\"Dubai\", \"Abu Dhabi\", \"Sharjah\"]\n}"
+								}
+							]
+						},
+						{
+							"name": "Partially update a field dependency (PATCH)",
+							"request": {
+								"method": "PATCH",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n    \"action_value\": [\"Dubai\", \"Abu Dhabi\", \"Sharjah\", \"Ajman\"]\n}"
+								},
+								"url": {
+									"raw": "{{base_url}}/api/v1/surveys/{{survey_id}}/field-dependencies/{{dependency_id}}/",
+									"host": ["{{base_url}}"],
+									"path": ["api", "v1", "surveys", "{{survey_id}}", "field-dependencies", "{{dependency_id}}", ""]
+								},
+								"description": "Partially update a field dependency. Admin only. Survey must be in draft status."
+							},
+							"response": [
+								{
+									"name": "200 — Dependency patched",
+									"status": "OK",
+									"code": 200,
+									"header": [{"key": "Content-Type", "value": "application/json"}],
+									"body": "{\n    \"id\": 1,\n    \"dependent_field\": 4,\n    \"depends_on_field\": 3,\n    \"operator\": \"equals\",\n    \"value\": \"UAE\",\n    \"action\": \"show_options\",\n    \"action_value\": [\"Dubai\", \"Abu Dhabi\", \"Sharjah\", \"Ajman\"]\n}"
+								}
+							]
+						},
+						{
+							"name": "Delete a field dependency",
+							"request": {
+								"method": "DELETE",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/api/v1/surveys/{{survey_id}}/field-dependencies/{{dependency_id}}/",
+									"host": ["{{base_url}}"],
+									"path": ["api", "v1", "surveys", "{{survey_id}}", "field-dependencies", "{{dependency_id}}", ""]
+								},
+								"description": "Delete a field dependency. Admin only. Survey must be in draft status."
+							},
+							"response": [
+								{
+									"name": "204 — Dependency deleted",
+									"status": "No Content",
+									"code": 204,
+									"header": [],
+									"body": ""
+								}
+							]
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "Responses",
+			"description": "Survey submission and response retrieval.",
+			"item": [
+				{
+					"name": "Submit a survey response",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"type": "text/javascript",
+								"exec": [
+									"if (pm.response.code === 201) {",
+									"    var json = pm.response.json();",
+									"    pm.collectionVariables.set('response_id', json.id);",
+									"    pm.test('Submission successful', function () {",
+									"        pm.expect(json.message).to.eql('Response submitted successfully.');",
+									"    });",
+									"}"
+								]
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"answers\": [\n        {\n            \"field_id\": 1,\n            \"value\": \"John Doe\"\n        },\n        {\n            \"field_id\": 2,\n            \"value\": \"john@example.com\"\n        },\n        {\n            \"field_id\": 3,\n            \"value\": \"Excellent\"\n        },\n        {\n            \"field_id\": 4,\n            \"value\": \"Great service, very satisfied!\"\n        },\n        {\n            \"field_id\": 5,\n            \"value\": [\"Technology\", \"Travel\"]\n        },\n        {\n            \"field_id\": 6,\n            \"value\": 25\n        }\n    ]\n}"
+						},
+						"url": {
+							"raw": "{{base_url}}/api/v1/surveys/{{survey_id}}/submit/",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "surveys", "{{survey_id}}", "submit", ""]
+						},
+						"description": "Submit a response to a published survey. Customer role only.\n\nEach user can only submit once per survey. The submission is validated against:\n- Conditional rules (fields hidden by rules are not required)\n- Required field checks\n- Type validation (number, date, email format)\n- Validation rules (min, max, min_length, max_length, regex)\n- Field dependencies\n\nValues for encrypted fields are automatically encrypted before storage."
+					},
+					"response": [
+						{
+							"name": "201 — Submission successful",
+							"status": "Created",
+							"code": 201,
+							"header": [{"key": "Content-Type", "value": "application/json"}],
+							"body": "{\n    \"id\": 1,\n    \"message\": \"Response submitted successfully.\"\n}"
+						},
+						{
+							"name": "400 — Validation errors",
+							"status": "Bad Request",
+							"code": 400,
+							"header": [{"key": "Content-Type", "value": "application/json"}],
+							"body": "{\n    \"errors\": {\n        \"1\": \"This field is required.\",\n        \"6\": \"Value must be at least 18.\"\n    }\n}"
+						}
+					]
+				},
+				{
+					"name": "List survey responses",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/v1/surveys/{{survey_id}}/responses/",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "surveys", "{{survey_id}}", "responses", ""]
+						},
+						"description": "List all responses for a survey. Accessible by Admin, Data Analyst, and Data Viewer roles.\n\nThis action is audit-logged."
+					},
+					"response": [
+						{
+							"name": "200 — Response list",
+							"status": "OK",
+							"code": 200,
+							"header": [{"key": "Content-Type", "value": "application/json"}],
+							"body": "{\n    \"count\": 2,\n    \"next\": null,\n    \"previous\": null,\n    \"results\": [\n        {\n            \"id\": 1,\n            \"survey\": 1,\n            \"user\": \"john@example.com (Customer)\",\n            \"submitted_at\": \"2026-03-05T10:30:00Z\"\n        },\n        {\n            \"id\": 2,\n            \"survey\": 1,\n            \"user\": \"jane@example.com (Customer)\",\n            \"submitted_at\": \"2026-03-04T15:20:00Z\"\n        }\n    ]\n}"
+						}
+					]
+				},
+				{
+					"name": "Retrieve a survey response",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/v1/surveys/{{survey_id}}/responses/{{response_id}}/",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "surveys", "{{survey_id}}", "responses", "{{response_id}}", ""]
+						},
+						"description": "Retrieve a single response with all field answers. Encrypted fields are transparently decrypted.\n\nAccessible by Admin, Data Analyst, and Data Viewer roles. This action is audit-logged."
+					},
+					"response": [
+						{
+							"name": "200 — Full response with answers",
+							"status": "OK",
+							"code": 200,
+							"header": [{"key": "Content-Type", "value": "application/json"}],
+							"body": "{\n    \"id\": 1,\n    \"survey\": 1,\n    \"user\": \"john@example.com (Customer)\",\n    \"submitted_at\": \"2026-03-05T10:30:00Z\",\n    \"field_responses\": [\n        {\n            \"id\": 1,\n            \"field\": 1,\n            \"field_label\": \"Full Name\",\n            \"field_type\": \"text\",\n            \"value\": \"John Doe\"\n        },\n        {\n            \"id\": 2,\n            \"field\": 2,\n            \"field_label\": \"Email Address\",\n            \"field_type\": \"email\",\n            \"value\": \"john@example.com\"\n        },\n        {\n            \"id\": 3,\n            \"field\": 3,\n            \"field_label\": \"Overall Rating\",\n            \"field_type\": \"dropdown\",\n            \"value\": \"Excellent\"\n        },\n        {\n            \"id\": 4,\n            \"field\": 4,\n            \"field_label\": \"Comments\",\n            \"field_type\": \"textarea\",\n            \"value\": \"Great service, very satisfied!\"\n        }\n    ]\n}"
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "Audit",
+			"description": "Audit trail browsing. Admin only.",
+			"item": [
+				{
+					"name": "List audit logs",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/api/v1/audit/logs/?action=create&model_name=Survey&ordering=-timestamp",
+							"host": ["{{base_url}}"],
+							"path": ["api", "v1", "audit", "logs", ""],
+							"query": [
+								{
+									"key": "action",
+									"value": "create",
+									"description": "Filter by action: create, update, delete, view"
+								},
+								{
+									"key": "model_name",
+									"value": "Survey",
+									"description": "Filter by model: Survey, Section, Field, ConditionalRule, FieldDependency, SurveyResponse"
+								},
+								{
+									"key": "ordering",
+									"value": "-timestamp",
+									"description": "Order by timestamp (- for descending)"
+								},
+								{
+									"key": "user",
+									"value": "",
+									"description": "Filter by user ID",
+									"disabled": true
+								},
+								{
+									"key": "search",
+									"value": "",
+									"description": "Search across model_name and object_id",
+									"disabled": true
+								}
+							]
+						},
+						"description": "List all audit log entries with filtering, search, and ordering. Admin only.\n\nActions are automatically recorded for all CRUD operations on tracked models (Survey, Section, Field, ConditionalRule, FieldDependency, SurveyResponse) and for response view/export actions."
+					},
+					"response": [
+						{
+							"name": "200 — Audit log list",
+							"status": "OK",
+							"code": 200,
+							"header": [{"key": "Content-Type", "value": "application/json"}],
+							"body": "{\n    \"count\": 3,\n    \"next\": null,\n    \"previous\": null,\n    \"results\": [\n        {\n            \"id\": 3,\n            \"user\": 1,\n            \"action\": \"create\",\n            \"model_name\": \"Survey\",\n            \"object_id\": \"1\",\n            \"details\": {},\n            \"ip_address\": \"127.0.0.1\",\n            \"timestamp\": \"2026-03-05T10:00:00Z\"\n        },\n        {\n            \"id\": 2,\n            \"user\": 1,\n            \"action\": \"create\",\n            \"model_name\": \"Section\",\n            \"object_id\": \"1\",\n            \"details\": {},\n            \"ip_address\": \"127.0.0.1\",\n            \"timestamp\": \"2026-03-05T10:01:00Z\"\n        },\n        {\n            \"id\": 1,\n            \"user\": 1,\n            \"action\": \"view\",\n            \"model_name\": \"SurveyResponse\",\n            \"object_id\": \"1\",\n            \"details\": {\"scope\": \"detail\"},\n            \"ip_address\": \"127.0.0.1\",\n            \"timestamp\": \"2026-03-05T11:00:00Z\"\n        }\n    ]\n}"
+						}
+					]
+				}
+			]
+		}
+	]
+}
