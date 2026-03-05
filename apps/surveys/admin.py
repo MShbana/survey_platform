@@ -46,6 +46,7 @@ class SurveyAdmin(admin.ModelAdmin):
     list_display = ("title", "created_by", "status", "created_at")
     list_filter = ("status",)
     inlines = [SectionInline]
+    ordering = ("-id",)
 
     def save_model(self, request, obj, form, change):
         if not change:
@@ -104,6 +105,7 @@ class SurveyAdmin(admin.ModelAdmin):
 class SectionAdmin(admin.ModelAdmin):
     list_display = ("title", "survey", "order")
     inlines = [FieldInline]
+    ordering = ("-id",)
 
     def save_model(self, request, obj, form, change):
         try:
@@ -169,6 +171,7 @@ class SectionAdmin(admin.ModelAdmin):
 @admin.register(Field)
 class FieldAdmin(admin.ModelAdmin):
     list_display = ("label", "section", "field_type", "required", "order")
+    ordering = ("-id",)
 
     def save_model(self, request, obj, form, change):
         try:
@@ -215,6 +218,8 @@ class ConditionalRuleAdmin(admin.ModelAdmin):
         "target_field",
     )
     list_filter = ("survey",)
+    ordering = ("-id",)
+
 
     def save_model(self, request, obj, form, change):
         try:
@@ -265,6 +270,8 @@ class ConditionalRuleAdmin(admin.ModelAdmin):
 class FieldDependencyAdmin(admin.ModelAdmin):
     list_display = ("survey", "dependent_field", "depends_on_field", "operator", "action")
     list_filter = ("survey",)
+    ordering = ("-id",)
+
 
     def save_model(self, request, obj, form, change):
         try:

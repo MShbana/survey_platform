@@ -161,7 +161,10 @@ class SurveyViewSet(viewsets.ModelViewSet):
         """
         pk = kwargs["pk"]
 
-        # attempt to get from cache; if found, return immediately.
+        # Ensure the survey exists in the filtered queryset (respects role-based
+        # visibility) before serving from cache.
+        self.get_object()
+
         cached = SurveyCacheService.get_structure(pk)
         if cached:
             return Response(cached)
